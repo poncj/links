@@ -1,0 +1,22 @@
+# Composer
+/vendor/
+/composer.lock
+
+# Yii2 runtime & assets
+/runtime/
+/web/assets/
+
+# User uploads (если будут)
+ /web/uploads/
+
+# IDE / Editor
+/.idea/
+/.vscode/
+*.iml
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Env configs
+.env
