@@ -12,6 +12,8 @@ use app\models\LinkClickLog;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Label\LabelAlignment;
+use Endroid\QrCode\Label\Font\OpenSans;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 
@@ -23,7 +25,6 @@ class LinkController extends Controller
             'verbs' => [
                 'class' => VerbFilter::class,
                 'actions' => [
-                    'validate' => ['POST'],
                     'index'    => ['GET', 'POST'],
                     'click'    => ['GET'],
                 ],
@@ -39,40 +40,24 @@ class LinkController extends Controller
         $model = new Link();
 
         if (Yii::$app->request->isPost) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-
             $model->load(Yii::$app->request->post());
             if ($model->validate() && $model->save()) {
                 $shortUrl = Yii::$app->request->hostInfo . '/s/' . $model->short_code;
 
-                return [
+                return $this->asJson([
                     'success'  => true,
                     'shortUrl' => $shortUrl,
                     'qr'       => $this->generateQr($shortUrl),
-                ];
+                ]);
             }
 
-            return ['success' => false, 'errors' => $model->errors];
+            return $this->asJson([
+                    'success' => false,
+                    'errors' => $model->errors
+            ]);
         }
 
         return $this->render('index', ['model' => $model]);
-    }
-
-    /**
-     * Ajax-валидация ссылки
-     */
-    public function actionValidate()
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-
-        $model = new Link();
-        $model->load(Yii::$app->request->post());
-
-        if ($model->validate()) {
-            return ['valid' => true];
-        }
-
-        return ['valid' => false, 'errors' => $model->errors];
     }
 
     /**
@@ -97,25 +82,42 @@ class LinkController extends Controller
         return $this->redirect($link->original_url);
     }
 
-    /**
-     * Генерация QR-кода (endroid/qr-code v6)
-     */
     protected function generateQr(string $url): string
     {
+        $builder = new Builder(
+            writer: new PngWriter(),
+            writerOptions: [],
+            validateResult: false,
+            data: $url,
+            encoding: new Encoding('UTF-8'),
+            errorCorrectionLevel: ErrorCorrectionLevel::High,
+            size: 300,
+            margin: 10,
+            roundBlockSizeMode: RoundBlockSizeMode::Margin,
+            logoPath: '',
+            logoResizeToWidth: 50,
+            logoPunchoutBackground: true,
+            labelText: '',
+            labelFont: new OpenSans(20),
+            labelAlignment: LabelAlignment::Center
+        );
 
-        $builder = Builder::create()
-            ->writer(new PngWriter())
-            ->data($url)
-            ->encoding(new Encoding('UTF-8'))
-            ->errorCorrectionLevel(new ErrorCorrectionLevel\ErrorCorrectionLevelHigh())
-            ->size(300)
-            ->margin(10)
-            ->roundBlockSizeMode(new RoundBlockSizeMode\RoundBlockSizeModeMargin())
-            ->build();
+        $result = $builder->build();
 
-        return $builder->getDataUri();
+        return $result->getDataUri();
     }
 
 
+    public function actionTest()
+    {
+        throw new \yii\web\NotFoundHttpException("Ссылка не найдена");
 
+        $model = new Link();
+        $original_url = 'http://google.com/';
+
+        $model->original_url = $original_url;
+        $model->validateUrl('original_url', []);
+
+        var_dump($model->getErrors());
+    }
 }

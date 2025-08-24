@@ -27,6 +27,7 @@ class Link extends ActiveRecord
             [['original_url'], 'required'],
             [['original_url'], 'url', 'defaultScheme' => 'https', 'validSchemes' => ['http', 'https']], // требуем http/https
             [['original_url'], 'string', 'max' => 2048],
+            [['original_url'], 'validateUrl'],
             [['short_code'], 'string', 'max' => 32],
             [['short_code'], 'unique'],
             [['clicks'], 'integer'],
@@ -77,5 +78,28 @@ class Link extends ActiveRecord
         }
 
         return $result ?: '0';
+    }
+
+    public function validateUrl($attribute, $params)
+    {
+        $ch = curl_init($this->$attribute);
+
+        curl_setopt($ch, CURLOPT_NOBODY, true); // только заголовки
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // редиректы
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5); // таймаут
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // отключить SSL-проверку (по ситуации)
+
+        curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        curl_close($ch);
+
+        // TODO найти fix для проверки google.com
+        if (($httpCode >= 200 && $httpCode < 400) || $httpCode == 403 || $httpCode == 405) {
+            // Нет ошибки
+            return;
+        }
+
+        $this->addError($attribute, 'Указанный сайт недоступен или не существует.');
     }
 }

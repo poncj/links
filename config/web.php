@@ -49,7 +49,6 @@ $config = [
             'showScriptName' => false,
             'rules' => [
                 '' => 'link/index',
-                'link/validate' => 'link/validate',
                 's/<short_code:[A-Za-z0-9]+>' =>'link/click'
             ],
         ],
