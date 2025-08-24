@@ -41,7 +41,7 @@ class LinkController extends Controller
 
         if (Yii::$app->request->isPost) {
             $model->load(Yii::$app->request->post());
-            if ($model->validate() && $model->save()) {
+            if ($model->save()) {
                 $shortUrl = Yii::$app->request->hostInfo . '/s/' . $model->short_code;
 
                 return $this->asJson([
